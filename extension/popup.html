@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<style>
+  body {
+    width: 260px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    background: #f0f4f8;
+    margin: 0;
+    padding: 0;
+  }
+  .header {
+    background: #1a73e8;
+    color: #fff;
+    padding: 14px 16px 10px;
+  }
+  .header h1 { font-size: 14px; font-weight: 700; margin: 0; }
+  .header p  { font-size: 11px; opacity: .8; margin: 2px 0 0; }
+  .body { padding: 14px 16px; }
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+    margin-bottom: 10px;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #9aa0a6;
+    flex-shrink: 0;
+  }
+  .dot.ok      { background: #2e7d32; }
+  .dot.warn    { background: #e65100; }
+  .btn-open {
+    width: 100%;
+    padding: 9px;
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .btn-open:hover { background: #1558b0; }
+  .footer {
+    font-size: 10px;
+    color: #9aa0a6;
+    text-align: center;
+    padding: 8px 0 12px;
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏥 SISVAN Consulta</h1>
+  <p>PAI · ADRES · Comprobador de Derechos</p>
+</div>
+<div class="body">
+  <div class="status-row">
+    <div class="dot" id="dotPortal"></div>
+    <span id="lblPortal">Verificando portal PAI/ADRES…</span>
+  </div>
+  <div class="status-row">
+    <div class="dot" id="dotWeb"></div>
+    <span id="lblWeb">Verificando página web…</span>
+  </div>
+  <button class="btn-open" onclick="abrirApp()">Abrir SISVAN Consulta</button>
+</div>
+<div class="footer">© 2026 Luis Silva — SISVAN / Subred Sur</div>
+
+<script>
+const APP_URL = 'https://TU-USUARIO.github.io/sisvan-consulta/';  // ← cambiar
+
+chrome.tabs.query({}, tabs => {
+  const portalTab = tabs.find(t => t.url && t.url.includes('appb.saludcapital.gov.co'));
+  const webTab    = tabs.find(t => t.url && (t.url.includes('github.io') || t.url.includes('localhost')));
+
+  if (portalTab) {
+    document.getElementById('dotPortal').className = 'dot ok';
+    document.getElementById('lblPortal').textContent = '✅ Portal PAI/ADRES abierto';
+  } else {
+    document.getElementById('dotPortal').className = 'dot warn';
+    document.getElementById('lblPortal').textContent = '⚠ Portal no detectado';
+  }
+
+  if (webTab) {
+    document.getElementById('dotWeb').className = 'dot ok';
+    document.getElementById('lblWeb').textContent = '✅ App SISVAN activa';
+  } else {
+    document.getElementById('dotWeb').className = 'dot warn';
+    document.getElementById('lblWeb').textContent = '⚠ App SISVAN no detectada';
+  }
+});
+
+function abrirApp() {
+  chrome.tabs.create({ url: APP_URL });
+}
+</script>
+</body>
+</html>
