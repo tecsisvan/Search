@@ -1,0 +1,85 @@
+// ─────────────────────────────────────────────────────────────────
+//  SISVAN 2026 — background.js (Service Worker MV3)
+//  Puente: página web (GitHub Pages) ↔ content script (portal PAI/ADRES)
+// ─────────────────────────────────────────────────────────────────
+
+const PORTAL_ORIGIN = 'https://appb.saludcapital.gov.co';
+
+// ── Escuchar mensajes desde el content script ──────────────────
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+
+  // El content script anuncia que el portal está listo
+  if (msg.type === 'PORTAL_READY') {
+    notifyWebPage('READY', {});
+    return;
+  }
+
+  // El content script devuelve el resultado de un scraping
+  if (msg.type === 'SCRAPING_RESULT') {
+    notifyWebPage('RESULT', { codigo: msg.codigo, fila: msg.fila });
+    return;
+  }
+});
+
+// ── Escuchar mensajes desde la página web (externally_connectable no aplica
+//    para GitHub Pages, así que usamos un content script inyectado en la
+//    propia GitHub Pages si es necesario; aquí recibimos via
+//    chrome.runtime.onMessageExternal — funciona con allowedOrigins en el manifest.
+//    Alternativa robusta: la página web hace postMessage al window y el
+//    content script inyectado en el portal escucha via chrome.runtime.
+//
+//    FLUJO REAL:
+//    app.html → window.postMessage → content-bridge.js (inyectado en app.html)
+//             → chrome.runtime.sendMessage → background.js
+//             → chrome.tabs.sendMessage → content.js (en el portal)
+//             → scraping → chrome.runtime.sendMessage → background.js
+//             → chrome.tabs.sendMessage a la pestaña de app.html
+//             → content-bridge.js → window.postMessage → app.html
+// ─────────────────────────────────────────────────────────────────
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+
+  if (msg.type === 'SISVAN_CONSULTA' || msg.type === 'PING') {
+
+    // Buscar pestaña del portal PAI/ADRES
+    chrome.tabs.query({ url: PORTAL_ORIGIN + '/*' }, tabs => {
+      if (!tabs.length) {
+        // No hay pestaña del portal abierta → abrir una
+        chrome.tabs.create(
+          { url: PORTAL_ORIGIN + '/pai/vacunacion/datosBasicos.aspx?pag=2', active: false },
+          newTab => {
+            // Esperar a que cargue antes de enviar
+            chrome.tabs.onUpdated.addListener(function waitLoad(tabId, info) {
+              if (tabId === newTab.id && info.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(waitLoad);
+                setTimeout(() => {
+                  chrome.tabs.sendMessage(newTab.id, msg);
+                }, 1500);
+              }
+            });
+          }
+        );
+      } else {
+        // Enviar a la primera pestaña del portal encontrada
+        chrome.tabs.sendMessage(tabs[0].id, msg);
+      }
+    });
+  }
+  return true;
+});
+
+// ── Notificar a la pestaña de GitHub Pages ─────────────────────
+function notifyWebPage(type, payload) {
+  chrome.tabs.query({}, tabs => {
+    tabs.forEach(tab => {
+      if (tab.url && (
+        tab.url.includes('github.io') ||
+        tab.url.includes('localhost') ||
+        tab.url.includes('127.0.0.1')
+      )) {
+        chrome.tabs.sendMessage(tab.id, { source: 'SISVAN_EXT', type, ...payload })
+          .catch(() => {}); // ignorar si la pestaña no tiene content-bridge
+      }
+    });
+  });
+}
