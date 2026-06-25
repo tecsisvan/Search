@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISVAN 2026 — Inicio de sesión</title>
+<style>
+  :root {
+    --azul:      #1a73e8;
+    --azul-osc:  #1558b0;
+    --gris-fondo:#f0f4f8;
+    --gris-card: #ffffff;
+    --texto:     #212121;
+    --texto-sub: #5f6368;
+    --borde:     #dadce0;
+    --error:     #d32f2f;
+    --verde:     #2e7d32;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: var(--gris-fondo);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--texto);
+  }
+
+  /* Franja institucional superior */
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--azul) 0%, #6a1b9a 50%, #e65100 100%);
+  }
+
+  .login-wrap {
+    width: 100%;
+    max-width: 400px;
+    padding: 0 16px;
+  }
+
+  /* Logo / encabezado */
+  .logo-block {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .logo-icon {
+    width: 64px; height: 64px;
+    background: var(--azul);
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 14px rgba(26,115,232,.30);
+  }
+  .logo-block h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+    color: var(--texto);
+  }
+  .logo-block p {
+    font-size: 12px;
+    color: var(--texto-sub);
+    margin-top: 4px;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+  }
+
+  /* Tarjeta */
+  .card {
+    background: var(--gris-card);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 36px 32px 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .card h2 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: var(--texto);
+  }
+
+  /* Campos */
+  .field {
+    margin-bottom: 18px;
+  }
+  .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--texto-sub);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    height: 44px;
+    border: 1.5px solid var(--borde);
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--texto);
+    background: #fff;
+    transition: border-color .15s;
+    outline: none;
+  }
+  .field input:focus {
+    border-color: var(--azul);
+    box-shadow: 0 0 0 3px rgba(26,115,232,.12);
+  }
+
+  /* Error */
+  .error-msg {
+    display: none;
+    background: #fce8e6;
+    border: 1px solid #f5c6c6;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--error);
+    margin-bottom: 16px;
+  }
+  .error-msg.visible { display: block; }
+
+  /* Botón */
+  .btn-login {
+    width: 100%;
+    height: 46px;
+    background: var(--azul);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    letter-spacing: .2px;
+  }
+  .btn-login:hover  { background: var(--azul-osc); }
+  .btn-login:active { transform: scale(.98); }
+  .btn-login:disabled {
+    background: #9ab4e8;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Spinner inline */
+  .btn-login .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Footer */
+  .footer {
+    margin-top: 28px;
+    text-align: center;
+    font-size: 11px;
+    color: #9aa0a6;
+    line-height: 1.6;
+  }
+  .footer strong { color: var(--texto-sub); }
+</style>
+</head>
+<body>
+<div class="top-bar"></div>
+
+<div class="login-wrap">
+  <div class="logo-block">
+    <div class="logo-icon">🏥</div>
+    <h1>SISVAN 2026</h1>
+    <p>Secretaría Distrital de Salud · Subred Sur</p>
+  </div>
+
+  <div class="card">
+    <h2>Iniciar sesión</h2>
+
+    <div class="error-msg" id="errorMsg">
+      Usuario o contraseña incorrectos.
+    </div>
+
+    <div class="field">
+      <label for="usuario">Usuario</label>
+      <input type="text" id="usuario" placeholder="Ingresa tu usuario"
+             autocomplete="username" spellcheck="false" />
+    </div>
+
+    <div class="field">
+      <label for="clave">Contraseña</label>
+      <input type="password" id="clave" placeholder="••••••••"
+             autocomplete="current-password" />
+    </div>
+
+    <button class="btn-login" id="btnLogin" onclick="login()">
+      Ingresar
+    </button>
+  </div>
+
+  <div class="footer">
+    <strong>PAI · ADRES · Comprobador de Derechos</strong><br>
+    © 2026 Luis Silva — SISVAN · Uso exclusivo institucional
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────────────────────
+//  CREDENCIALES  (hash SHA-256 para no exponer texto plano)
+//
+//  Para cambiar la clave: en la consola del navegador ejecuta:
+//    async function h(s){const b=new TextEncoder().encode(s);const d=await crypto.subtle.digest('SHA-256',b);return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+//    h('tuNuevaClave').then(console.log)
+//
+//  Usuarios registrados:
+//    usuario: "sisvan"    clave: "Subred2026*"
+//    usuario: "luis"      clave: "Luis2026*"
+//    usuario: "diego"     clave: "Diego2026*"
+// ──────────────────────────────────────────────────────────────
+const USUARIOS = {
+  "sisvan": "d2b1f6e5a0b3c4e0c58c3f0e1d5a7b8e2f9c4d6a1b0e3f5c8d2a7b4e6f1c3d0",
+  "luis":   "a3f8c1d2e4b7a5c0f6e3d1b8c2a4f7e5d0c3b6a1e8f2d4c5b0a7e3f6d2c1b4a5",
+  "diego":  "b4e7f2d1c5a8b3e6f0d4c2a9b5e1f8d3c6a0b7e4f5d2c1a6b8e3f7d0c4a2b9e5"
+};
+// NOTA: los hashes de arriba son de ejemplo. Reemplázalos con los reales
+// usando la función h() descrita arriba antes de publicar.
+// Hash real para "Subred2026*":
+// h("Subred2026*").then(console.log)
+
+async function sha256(msg) {
+  const buf  = new TextEncoder().encode(msg);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(hash)].map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+async function login() {
+  const btn    = document.getElementById('btnLogin');
+  const errMsg = document.getElementById('errorMsg');
+  const usuario = document.getElementById('usuario').value.trim().toLowerCase();
+  const clave   = document.getElementById('clave').value;
+
+  errMsg.classList.remove('visible');
+
+  if (!usuario || !clave) {
+    errMsg.textContent = 'Completa todos los campos.';
+    errMsg.classList.add('visible');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Verificando...';
+
+  const hashIngresado = await sha256(clave);
+  const hashEsperado  = USUARIOS[usuario];
+
+  if (hashEsperado && hashIngresado === hashEsperado) {
+    sessionStorage.setItem('sisvan_auth', btoa(usuario + ':' + Date.now()));
+    window.location.href = 'app.html';
+  } else {
+    errMsg.textContent = 'Usuario o contraseña incorrectos.';
+    errMsg.classList.add('visible');
+    btn.disabled  = false;
+    btn.innerHTML = 'Ingresar';
+    document.getElementById('clave').value = '';
+    document.getElementById('clave').focus();
+  }
+}
+
+// Enter en cualquier campo dispara login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+// Si ya está autenticado, saltar directo a app
+if (sessionStorage.getItem('sisvan_auth')) {
+  window.location.href = 'app.html';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SISVAN 2026 — Sistema de Consulta PAI / ADRES</title>
+<style>
+  :root {
+    --azul:        #1a73e8;
+    --azul-osc:    #1558b0;
+    --azul-bg:     #e8f0fe;
+    --naranja:     #e65100;
+    --naranja-osc: #bf360c;
+    --naranja-bg:  #fbe9e7;
+    --morado:      #6a1b9a;
+    --morado-osc:  #4a148c;
+    --morado-bg:   #f3e5f5;
+    --verde:       #2e7d32;
+    --gris-fondo:  #f0f4f8;
+    --gris-card:   #ffffff;
+    --texto:       #212121;
+    --texto-sub:   #5f6368;
+    --borde:       #dadce0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: var(--gris-fondo);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: var(--texto);
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--azul);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #fff;
+  }
+  .header-left span.icon { font-size: 22px; }
+  .header-left h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+  }
+  .header-left p {
+    font-size: 11px;
+    opacity: .75;
+    margin-top: 1px;
+  }
+  .btn-logout {
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-logout:hover { background: rgba(255,255,255,.25); }
+
+  /* ── TABS ── */
+  .tabs-bar {
+    display: flex;
+    background: #fff;
+    border-bottom: 2px solid var(--borde);
+    padding: 0 24px;
+    gap: 0;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 14px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+    color: var(--texto-sub);
+    user-select: none;
+  }
+  .tab.active-azul    { color: var(--azul);    border-color: var(--azul);    }
+  .tab.active-naranja { color: var(--naranja);  border-color: var(--naranja); }
+  .tab.active-morado  { color: var(--morado);   border-color: var(--morado);  }
+  .tab:hover { color: var(--texto); }
+
+  /* ── PANELS ── */
+  .panel { display: none; padding: 28px 24px; max-width: 860px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .card {
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── FILE INPUT ── */
+  .file-drop {
+    border: 2px dashed var(--borde);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    position: relative;
+  }
+  .file-drop:hover, .file-drop.drag { border-color: var(--azul); background: var(--azul-bg); }
+  .file-drop input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .file-drop .icon-upload { font-size: 28px; margin-bottom: 8px; }
+  .file-drop p { font-size: 13px; color: var(--texto-sub); }
+  .file-drop .file-name {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--verde);
+  }
+
+  /* ── OPCIONES RADIO ── */
+  .opciones-grid { display: flex; flex-direction: column; gap: 8px; }
+  .opcion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--borde);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .opcion-item:hover { background: #fafafa; }
+  .opcion-item.sel-azul    { border-color: var(--azul);    background: var(--azul-bg);    }
+  .opcion-item.sel-naranja { border-color: var(--naranja);  background: var(--naranja-bg); }
+  .opcion-item input[type=radio] { margin-top: 2px; accent-color: var(--azul); }
+  .opcion-item .op-title { font-size: 14px; font-weight: 600; }
+  .opcion-item .op-desc  { font-size: 12px; color: var(--texto-sub); margin-top: 2px; }
+
+  /* ── BOTÓN INICIAR ── */
+  .btn-run {
+    width: 100%;
+    height: 48px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    color: #fff;
+    letter-spacing: .3px;
+    transition: filter .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-run:hover   { filter: brightness(1.08); }
+  .btn-run:active  { transform: scale(.98); }
+  .btn-run:disabled{ filter: grayscale(.5) brightness(.85); cursor: not-allowed; transform: none; }
+  .btn-run.azul    { background: var(--azul); }
+  .btn-run.naranja { background: var(--naranja); }
+  .btn-run.morado  { background: var(--morado); }
+
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── PROGRESO ── */
+  .progress-wrap { margin: 16px 0 8px; }
+  .progress-bar-outer {
+    height: 8px;
+    background: var(--borde);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: width .3s ease;
+  }
+  .progress-bar-inner.azul    { background: var(--azul); }
+  .progress-bar-inner.naranja { background: var(--naranja); }
+  .progress-bar-inner.morado  { background: var(--morado); }
+  .progress-label {
+    font-size: 12px;
+    color: var(--texto-sub);
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  /* ── LOG ── */
+  .log-box {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 14px;
+    height: 200px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #aaa;
+  }
+  .log-box .log-ok     { color: #69f0ae; }
+  .log-box .log-warn   { color: #ffd740; }
+  .log-box .log-err    { color: #ff5252; }
+  .log-box .log-info   { color: #82b1ff; }
+  .log-box .log-done   { color: #ea80fc; }
+
+  /* ── RESULTADOS ── */
+  .results-wrap { overflow-x: auto; max-height: 340px; overflow-y: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    border-bottom: 2px solid var(--borde);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--texto-sub);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    white-space: nowrap;
+  }
+  tbody tr:nth-child(even) { background: #f8f9fa; }
+  tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .no-encontrado { color: #e53935; font-style: italic; }
+
+  /* ── DOWNLOAD BTNS ── */
+  .download-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .btn-dl {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: filter .15s;
+  }
+  .btn-dl:hover { filter: brightness(.93); }
+  .btn-dl.csv  { background: #e8f5e9; color: #2e7d32; }
+  .btn-dl.xlsx { background: #e3f2fd; color: #1558b0; }
+
+  /* ── BADGE extensión ── */
+  .ext-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff3e0;
+    border: 1px solid #ffcc80;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: #e65100;
+    font-weight: 600;
+  }
+  .ext-badge.connected {
+    background: #e8f5e9;
+    border-color: #a5d6a7;
+    color: #2e7d32;
+  }
+
+  /* ── INFO CARD ADRES ── */
+  .info-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .info-list li {
+    font-size: 13px;
+    color: var(--texto-sub);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .info-list li::before {
+    content: '▸';
+    color: var(--morado);
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <span class="icon">🏥</span>
+    <div>
+      <h1>Sistema de Consulta PAI / ADRES</h1>
+      <p>SISVAN 2026 — Secretaría Distrital de Salud</p>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="ext-badge" id="extStatus">⚠ Extensión no detectada</span>
+    <button class="btn-logout" onclick="logout()">Cerrar sesión</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <div class="tab active-azul"    id="tab-menores"  onclick="showTab('menores')">👶 PAI Menores</div>
+  <div class="tab"                id="tab-mayores"  onclick="showTab('mayores')">🧑 PAI Mayores</div>
+  <div class="tab"                id="tab-adres"    onclick="showTab('adres')"  >🔐 ADRES / Comprobador</div>
+</div>
+
+<!-- ═══════════════ PANEL MENORES ═══════════════ -->
+<div class="panel active" id="panel-menores">
+
+  <div class="card">
+    <div class="card-title" style="color:var(--azul)">📁 Archivo de códigos</div>
+    <div class="file-drop" id="drop-menores">
+      <input type="file" accept=".csv" onchange="loadCSV(event,'menores')" />
+      <div class="icon-upload">📂</div>
+      <p>Arrastra el CSV aquí o haz clic para seleccionar</p>
+      <p style="font-size:11px;margin-top:4px;">Columnas requeridas: <strong>consecutivo, codigo</strong></p>
+      <div class="file-name" id="fname-menores"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--azul)">🔎 Tipo de consulta</div>
+    <div class="opciones-grid" id="opts-menores">
+      <!-- generado por JS -->
+    </div>
+  </div>
+
+  <div class="card">
+    <button class="btn-run azul" id="btn-menores" onclick="iniciarConsulta('menores')">
+      ▶ Iniciar consulta PAI Menores
+    </button>
+    <div class="progress-wrap" id="prog-wrap-menores" style="display:none">
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner azul" id="prog-bar-menores"></div>
+      </div>
+      <div class="progress-label" id="prog-label-menores">0 / 0</div>
+    </div>
+    <div class="card-title" style="margin-top:16px;color:var(--azul)">📋 Actividad</div>
+    <div class="log-box" id="log-menores"></div>
+  </div>
+
+  <div class="card" id="res-card-menores" style="display:none">
+    <div class="card-title" style="color:var(--azul)">✅ Resultados</div>
+    <div class="results-wrap"><table id="tbl-menores"><thead></thead><tbody></tbody></table></div>
+    <div class="download-row">
+      <button class="btn-dl csv"  onclick="downloadCSV('menores')">⬇ Descargar CSV</button>
+      <button class="btn-dl xlsx" onclick="downloadXLSX('menores')">⬇ Descargar XLSX</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PANEL MAYORES ═══════════════ -->
+<div class="panel" id="panel-mayores">
+
+  <div class="card">
+    <div class="card-title" style="color:var(--naranja)">📁 Archivo de códigos</div>
+    <div class="file-drop" id="drop-mayores">
+      <input type="file" accept=".csv" onchange="loadCSV(event,'mayores')" />
+      <div class="icon-upload">📂</div>
+      <p>Arrastra el CSV aquí o haz clic para seleccionar</p>
+      <p style="font-size:11px;margin-top:4px;">Columnas requeridas: <strong>consecutivo, codigo</strong></p>
+      <div class="file-name" id="fname-mayores"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--naranja)">🔎 Tipo de consulta</div>
+    <div class="opciones-grid" id="opts-mayores"></div>
+  </div>
+
+  <div class="card">
+    <button class="btn-run naranja" id="btn-mayores" onclick="iniciarConsulta('mayores')">
+      ▶ Iniciar consulta PAI Mayores
+    </button>
+    <div class="progress-wrap" id="prog-wrap-mayores" style="display:none">
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner naranja" id="prog-bar-mayores"></div>
+      </div>
+      <div class="progress-label" id="prog-label-mayores">0 / 0</div>
+    </div>
+    <div class="card-title" style="margin-top:16px;color:var(--naranja)">📋 Actividad</div>
+    <div class="log-box" id="log-mayores" style="--log-color:#ffd740"></div>
+  </div>
+
+  <div class="card" id="res-card-mayores" style="display:none">
+    <div class="card-title" style="color:var(--naranja)">✅ Resultados</div>
+    <div class="results-wrap"><table id="tbl-mayores"><thead></thead><tbody></tbody></table></div>
+    <div class="download-row">
+      <button class="btn-dl csv"  onclick="downloadCSV('mayores')">⬇ Descargar CSV</button>
+      <button class="btn-dl xlsx" onclick="downloadXLSX('mayores')">⬇ Descargar XLSX</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PANEL ADRES ═══════════════ -->
+<div class="panel" id="panel-adres">
+
+  <div class="card">
+    <div class="card-title" style="color:var(--morado)">📁 Archivo de códigos</div>
+    <div class="file-drop" id="drop-adres">
+      <input type="file" accept=".csv" onchange="loadCSV(event,'adres')" />
+      <div class="icon-upload">📂</div>
+      <p>Arrastra el CSV aquí o haz clic para seleccionar</p>
+      <p style="font-size:11px;margin-top:4px;">Columnas requeridas: <strong>consecutivo, codigo</strong></p>
+      <div class="file-name" id="fname-adres"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--morado)">ℹ️ Datos extraídos por cada código</div>
+    <ul class="info-list">
+      <li>Todos los campos de la tabla Contributivo o BUDA (según disponibilidad)</li>
+      <li>Tabla de origen (Contributivo / BUDA)</li>
+      <li>Sexo (campo de la vista de detalle)</li>
+      <li>Estado de autorización (NO AUTORIZADO si falla tras 3 intentos)</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <button class="btn-run morado" id="btn-adres" onclick="iniciarConsulta('adres')">
+      ▶ Iniciar consulta ADRES
+    </button>
+    <div class="progress-wrap" id="prog-wrap-adres" style="display:none">
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner morado" id="prog-bar-adres"></div>
+      </div>
+      <div class="progress-label" id="prog-label-adres">0 / 0</div>
+    </div>
+    <div class="card-title" style="margin-top:16px;color:var(--morado)">📋 Actividad</div>
+    <div class="log-box" id="log-adres"></div>
+  </div>
+
+  <div class="card" id="res-card-adres" style="display:none">
+    <div class="card-title" style="color:var(--morado)">✅ Resultados</div>
+    <div class="results-wrap"><table id="tbl-adres"><thead></thead><tbody></tbody></table></div>
+    <div class="download-row">
+      <button class="btn-dl csv"  onclick="downloadCSV('adres')">⬇ Descargar CSV</button>
+      <button class="btn-dl xlsx" onclick="downloadXLSX('adres')">⬇ Descargar XLSX</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
+<script>
+// ── AUTH GUARD ──
+if (!sessionStorage.getItem('sisvan_auth')) {
+  window.location.href = 'index.html';
+}
+function logout() {
+  sessionStorage.removeItem('sisvan_auth');
+  window.location.href = 'index.html';
+}
+
+// ── OPCIONES ──
+const OPCIONES_MENORES = [
+  { val:'1', titulo:'Datos básicos',  desc:'TD, ID, nombres, apellidos, fecha de nacimiento, sexo, género' },
+  { val:'2', titulo:'Teléfono',       desc:'ID, nombre, apellido, teléfono 1 y teléfono 2' },
+  { val:'3', titulo:'Dirección',      desc:'ID, nombre, apellido, dirección, municipio, dpto, localidad, barrio, UPZ' },
+  { val:'4', titulo:'EAPB',           desc:'ID, nombre, apellido, EAPB y régimen' },
+  { val:'5', titulo:'Datos de madre', desc:'ID, nombre, apellido, TD madre, doc madre, nombres y apellidos madre' },
+];
+const OPCIONES_MAYORES = [
+  { val:'1', titulo:'Datos básicos', desc:'TD, ID, nombres, apellidos, fecha de nacimiento, sexo, género' },
+  { val:'2', titulo:'Teléfono',      desc:'ID, nombre, apellido, teléfono 1 y teléfono 2' },
+  { val:'3', titulo:'Dirección',     desc:'ID, nombre, apellido, dirección, municipio, dpto, localidad, barrio, UPZ' },
+  { val:'4', titulo:'EAPB',          desc:'ID, nombre, apellido, EAPB y régimen' },
+];
+
+function renderOpciones(containerId, opciones, color) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = opciones.map((o, i) => `
+    <label class="opcion-item ${i===0?'sel-'+color:''}" id="label-${containerId}-${o.val}"
+           onclick="selectOpcion('${containerId}','${o.val}','${color}')">
+      <input type="radio" name="${containerId}" value="${o.val}" ${i===0?'checked':''} />
+      <div>
+        <div class="op-title">${o.titulo}</div>
+        <div class="op-desc">${o.desc}</div>
+      </div>
+    </label>`).join('');
+}
+
+function selectOpcion(containerId, val, color) {
+  document.querySelectorAll(`#${containerId} .opcion-item`).forEach(el => {
+    el.classList.remove('sel-azul','sel-naranja');
+  });
+  document.getElementById(`label-${containerId}-${val}`).classList.add('sel-'+color);
+}
+
+renderOpciones('opts-menores', OPCIONES_MENORES, 'azul');
+renderOpciones('opts-mayores', OPCIONES_MAYORES, 'naranja');
+
+// ── TABS ──
+function showTab(tab) {
+  ['menores','mayores','adres'].forEach(t => {
+    document.getElementById('panel-'+t).classList.remove('active');
+    document.getElementById('tab-'+t).className = 'tab';
+  });
+  document.getElementById('panel-'+tab).classList.add('active');
+  const colors = { menores:'azul', mayores:'naranja', adres:'morado' };
+  document.getElementById('tab-'+tab).className = 'tab active-'+colors[tab];
+}
+
+// ── CSV PARSING ──
+const csvData = {}; // { menores: [{consecutivo,codigo},...], mayores: [...], adres: [...] }
+
+function loadCSV(evt, modulo) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  document.getElementById('fname-'+modulo).textContent = '✔ ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    csvData[modulo] = parseCSV(text);
+    addLog(modulo, `✅ CSV cargado: ${file.name} — ${csvData[modulo].length} registros`, 'ok');
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text) {
+  const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim());
+  if (!lines.length) return [];
+  // detect separator
+  const sep = lines[0].includes(';') ? ';' : ',';
+  const headers = lines[0].split(sep).map(h => h.trim().replace(/^["']|["']$/g,''));
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const vals = lines[i].split(sep).map(v => v.trim().replace(/^["']|["']$/g,''));
+    const obj = {};
+    headers.forEach((h,j) => obj[h] = vals[j] || '');
+    rows.push(obj);
+  }
+  return rows;
+}
+
+// ── LOG ──
+function addLog(modulo, msg, tipo='info') {
+  const box = document.getElementById('log-'+modulo);
+  const span = document.createElement('span');
+  span.className = 'log-'+tipo;
+  span.textContent = msg + '\n';
+  box.appendChild(span);
+  box.scrollTop = box.scrollHeight;
+}
+function clearLog(modulo) {
+  document.getElementById('log-'+modulo).innerHTML = '';
+}
+
+// ── RESULTADOS GLOBALES ──
+const resultados = { menores:[], mayores:[], adres:[] };
+
+// ── INICIAR CONSULTA ──
+function iniciarConsulta(modulo) {
+  if (!sessionStorage.getItem('sisvan_auth')) { logout(); return; }
+
+  const datos = csvData[modulo];
+  if (!datos || !datos.length) {
+    alert('Primero carga un archivo CSV con los códigos.');
+    return;
+  }
+
+  // Verificar extensión
+  if (!window.__SISVAN_EXT_READY__) {
+    alert('⚠️ La extensión SISVAN no está activa.\n\nInstálala desde el repositorio (carpeta /extension) y recarga esta página.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-'+modulo);
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Procesando...';
+  clearLog(modulo);
+  resultados[modulo] = [];
+  document.getElementById('res-card-'+modulo).style.display = 'none';
+
+  // Obtener opción seleccionada (PAI) o null (ADRES)
+  let opcion = null;
+  if (modulo !== 'adres') {
+    const sel = document.querySelector(`#opts-${modulo} input[type=radio]:checked`);
+    opcion = sel ? sel.value : '1';
+  }
+
+  const progWrap = document.getElementById('prog-wrap-'+modulo);
+  progWrap.style.display = 'block';
+  addLog(modulo, `📋 Iniciando — ${datos.length} registros — opción: ${opcion || 'ADRES'}`, 'info');
+
+  procesarLote(modulo, datos, opcion, 0);
+}
+
+// ── PROCESADO SECUENCIAL ──
+function procesarLote(modulo, datos, opcion, index) {
+  if (index >= datos.length) {
+    finalizarConsulta(modulo, datos.length);
+    return;
+  }
+
+  const row   = datos[index];
+  const total = datos.length;
+  const pct   = Math.round(((index+1)/total)*100);
+
+  document.getElementById('prog-bar-'+modulo).style.width = pct+'%';
+  document.getElementById('prog-label-'+modulo).textContent =
+    `${index+1} / ${total} registros (${pct}%)`;
+
+  addLog(modulo, `🔍 ${index+1}/${total} — Código: ${row.codigo}`, 'info');
+
+  // Enviar mensaje a la extensión
+  const msg = {
+    type: 'SISVAN_CONSULTA',
+    modulo,
+    opcion,
+    consecutivo: row.consecutivo,
+    codigo: row.codigo
+  };
+
+  window.postMessage({ source:'SISVAN_WEB', ...msg }, '*');
+
+  // Escuchar respuesta puntual con timeout
+  const timeout = setTimeout(() => {
+    addLog(modulo, `  ⚠️ Timeout — ${row.codigo}`, 'warn');
+    resultados[modulo].push({ consecutivo: row.consecutivo, codigo: row.codigo, estado: 'TIMEOUT' });
+    renderTabla(modulo);
+    procesarLote(modulo, datos, opcion, index+1);
+  }, 25000);
+
+  function onResult(e) {
+    if (e.data && e.data.source === 'SISVAN_EXT' && String(e.data.codigo) === String(row.codigo)) {
+      clearTimeout(timeout);
+      window.removeEventListener('message', onResult);
+      const fila = e.data.fila;
+      if (fila.estado === 'NO ENCONTRADO' || fila.estado === 'ERROR') {
+        addLog(modulo, `  ⚠️ ${row.codigo} — ${fila.estado}`, 'warn');
+      } else {
+        addLog(modulo, `  ✅ ${row.codigo} — OK`, 'ok');
+      }
+      resultados[modulo].push(fila);
+      renderTabla(modulo);
+      procesarLote(modulo, datos, opcion, index+1);
+    }
+  }
+  window.addEventListener('message', onResult);
+}
+
+function finalizarConsulta(modulo, total) {
+  const btn = document.getElementById('btn-'+modulo);
+  const colores = { menores:'▶ Iniciar consulta PAI Menores', mayores:'▶ Iniciar consulta PAI Mayores', adres:'▶ Iniciar consulta ADRES' };
+  btn.disabled = false;
+  btn.innerHTML = colores[modulo];
+  addLog(modulo, `\n🎉 Proceso completado — ${total} registros procesados`, 'done');
+  document.getElementById('res-card-'+modulo).style.display = 'block';
+}
+
+// ── TABLA DE RESULTADOS ──
+function renderTabla(modulo) {
+  const data = resultados[modulo];
+  if (!data.length) return;
+  const keys = [...new Set(data.flatMap(Object.keys))];
+  const tbl  = document.getElementById('tbl-'+modulo);
+  tbl.querySelector('thead').innerHTML =
+    '<tr>' + keys.map(k => `<th>${k}</th>`).join('') + '</tr>';
+  tbl.querySelector('tbody').innerHTML = data.map(row =>
+    '<tr>' + keys.map(k => {
+      const v = row[k] ?? '';
+      const cls = String(v).includes('NO ') ? ' class="no-encontrado"' : '';
+      return `<td${cls} title="${v}">${v}</td>`;
+    }).join('') + '</tr>'
+  ).join('');
+}
+
+// ── DESCARGA CSV ──
+function downloadCSV(modulo) {
+  const data = resultados[modulo];
+  if (!data.length) return;
+  const keys = [...new Set(data.flatMap(Object.keys))];
+  const lines = [keys.join(';')];
+  data.forEach(row => lines.push(keys.map(k => row[k] ?? '').join(';')));
+  const blob = new Blob(['\uFEFF'+lines.join('\n')], { type:'text/csv;charset=utf-8' });
+  triggerDownload(blob, `SISVAN_${modulo}_${fecha()}.csv`);
+}
+
+// ── DESCARGA XLSX (sin librería externa, genera XML Office Open) ──
+function downloadXLSX(modulo) {
+  const data = resultados[modulo];
+  if (!data.length) return;
+  const keys = [...new Set(data.flatMap(Object.keys))];
+
+  const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const rows = [keys, ...data.map(row => keys.map(k => row[k] ?? ''))];
+  const sheetRows = rows.map((r, ri) =>
+    `<row r="${ri+1}">${r.map((v,ci) => {
+      const col = String.fromCharCode(65+ci);
+      return `<c r="${col}${ri+1}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`;
+    }).join('')}</row>`
+  ).join('');
+
+  const sheet = `<?xml version="1.0" encoding="UTF-8"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetData>${sheetRows}</sheetData></worksheet>`;
+
+  const wb = `<?xml version="1.0" encoding="UTF-8"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Resultados" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+
+  const rels = `<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"
+  Target="worksheets/sheet1.xml"/>
+</Relationships>`;
+
+  const ct = `<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml"  ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml"
+  ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/worksheets/sheet1.xml"
+  ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>`;
+
+  // Empaquetar en ZIP manual (formato XLSX = ZIP)
+  // Usamos la librería JSZip cargada desde CDN
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+  script.onload = () => {
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', ct);
+    zip.folder('_rels').file('.rels',
+      `<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+  Target="xl/workbook.xml"/>
+</Relationships>`);
+    const xl = zip.folder('xl');
+    xl.file('workbook.xml', wb);
+    xl.folder('_rels').file('workbook.xml.rels', rels);
+    xl.folder('worksheets').file('sheet1.xml', sheet);
+    zip.generateAsync({ type:'blob' }).then(blob => {
+      triggerDownload(blob, `SISVAN_${modulo}_${fecha()}.xlsx`);
+    });
+  };
+  if (!window.JSZip) {
+    document.head.appendChild(script);
+  } else {
+    script.onload();
+  }
+}
+
+function triggerDownload(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function fecha() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ── DETECCIÓN DE EXTENSIÓN ──
+window.__SISVAN_EXT_READY__ = false;
+window.addEventListener('message', e => {
+  if (e.data && e.data.source === 'SISVAN_EXT' && e.data.type === 'READY') {
+    window.__SISVAN_EXT_READY__ = true;
+    const badge = document.getElementById('extStatus');
+    badge.textContent = '✅ Extensión conectada';
+    badge.className   = 'ext-badge connected';
+  }
+});
+// Solicitar ping al cargar
+setTimeout(() => {
+  window.postMessage({ source:'SISVAN_WEB', type:'PING' }, '*');
+}, 800);
+
+// ── DRAG AND DROP ──
+['menores','mayores','adres'].forEach(m => {
+  const drop = document.getElementById('drop-'+m);
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+  drop.addEventListener('dragleave',() => drop.classList.remove('drag'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) {
+      loadCSV({ target:{ files:[file] } }, m);
+    }
+  });
+});
+</script>
+</body>
+</html>
