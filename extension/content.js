@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────
-//  SISVAN 2026 — content.js v9 DEFINITIVO
-//  IDs verificados directamente desde la consola del portal
-//  pag=2 (menores) y pag=3 (mayores)
+//  SISVAN 2026 — content.js v10
+//  Botón búsqueda real: ContentPlaceHolder1_imbBuscarMadre (pag=2)
+//  Para pag=3 puede ser diferente — se intenta lista completa
 // ─────────────────────────────────────────────────────────────────
 
 const NE = 'NO ENCONTRADO';
@@ -30,13 +30,12 @@ function waitForEl(id, timeout = 15000) {
       if (el) { clearInterval(iv); resolve(el); return; }
       if (Date.now() - start > timeout) {
         clearInterval(iv);
-        reject(new Error('Timeout esperando: ' + id));
+        reject(new Error('Timeout: ' + id));
       }
     }, 400);
   });
 }
 
-// Esperar que un campo tenga valor real (no vacío)
 function waitForValue(id, timeout = 12000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
@@ -48,20 +47,18 @@ function waitForValue(id, timeout = 12000) {
       }
       if (Date.now() - start > timeout) {
         clearInterval(iv);
-        reject(new Error('Sin valor en: ' + id));
+        reject(new Error('Sin valor: ' + id));
       }
     }, 400);
   });
 }
 
-// Leer input text/hidden
 function val(id) {
   const el = document.getElementById(id);
   if (!el) return NE;
   return (el.value || '').trim() || NE;
 }
 
-// Leer select
 function selVal(id) {
   const el = document.getElementById(id);
   if (!el || el.selectedIndex < 0) return NE;
@@ -69,7 +66,6 @@ function selVal(id) {
   return (txt && txt !== 'Seleccione...') ? txt : NE;
 }
 
-// Escribir en campo
 function escribir(el, texto) {
   el.focus();
   el.value = String(texto);
@@ -77,7 +73,6 @@ function escribir(el, texto) {
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-// __doPostBack directo — sin tocar el href del link
 function doPostBack(target, argument) {
   if (typeof __doPostBack === 'function') {
     __doPostBack(target, argument);
@@ -99,56 +94,55 @@ function doPostBack(target, argument) {
   form.submit();
 }
 
-// Disparar búsqueda PAI — busca el botón lupa/imagen/submit del form
+// ── Disparar búsqueda PAI ────────────────────────────────────────
+// Orden de prioridad basado en los IDs reales encontrados en consola:
+// pag=2 menores → imbBuscarMadre
+// pag=3 mayores → probablemente imbBuscarMayores o similar
+// Se intenta lista exhaustiva + onkeypress del campo
 function dispararBusqueda(campo) {
-  // 1. Revisar onkeypress del campo
+  // 1. onkeypress del campo (si tiene AutoPostBack)
   const okp = campo.getAttribute('onkeypress') || '';
   const m   = okp.match(/__doPostBack\('([^']+)'\s*,\s*'([^']*)'\)/);
   if (m) { doPostBack(m[1], m[2]); return; }
 
-  // 2. Botones conocidos del portal PAI
+  // 2. Lista exhaustiva de IDs de botones de búsqueda del portal PAI
   const ids = [
-    'ContentPlaceHolder1_btn_BuscarMenores',
-    'ContentPlaceHolder1_btn_BuscarMayores',
+    'ContentPlaceHolder1_imbBuscarMadre',    // pag=2 menores ✅ confirmado
+    'ContentPlaceHolder1_imbBuscarMayores',   // pag=3 mayores (probable)
+    'ContentPlaceHolder1_imbBuscar',
     'ContentPlaceHolder1_btn_Buscar',
     'ContentPlaceHolder1_btnBuscar',
     'ContentPlaceHolder1_ImageButton1',
+    'ContentPlaceHolder1_imbBuscarPaciente',
   ];
   for (const id of ids) {
     const btn = document.getElementById(id);
     if (btn) { btn.click(); return; }
   }
 
-  // 3. Cualquier input image o submit visible
-  const imgBtn = document.querySelector(
-    "input[type='image'], input[type='submit'], button[type='submit']"
-  );
+  // 3. Cualquier input[type=image] visible en el form
+  const imgBtn = document.querySelector("input[type='image']");
   if (imgBtn) { imgBtn.click(); return; }
 
-  // 4. Postback del campo como último recurso
+  // 4. Submit genérico
+  const submit = document.querySelector("input[type='submit'], button[type='submit']");
+  if (submit) { submit.click(); return; }
+
+  // 5. Postback del campo directamente
   doPostBack('ctl00$ContentPlaceHolder1$txb_NumeroIdentificacionBusqueda', '');
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  IDs VERIFICADOS — PORTAL PAI pag=2 (menores) y pag=3 (mayores)
-//  Fuente: consola del portal, campo a campo
+//  IDs VERIFICADOS DEL PORTAL PAI
 // ─────────────────────────────────────────────────────────────────
-
-// ── Campos comunes a menores Y mayores ──
 const C = {
-  // Identificación
   tipoID:          'ContentPlaceHolder1_ddl_TipoID',
   identificacion:  'ContentPlaceHolder1_txb_Identificacion',
-  consecutivo:     'ContentPlaceHolder1_hdfConsecutivo',
   estadoPersona:   'ContentPlaceHolder1_ddlEstadoPersona',
-
-  // Nombre y apellidos
   apellido1:       'ContentPlaceHolder1_txb_Apellido1',
   apellido2:       'ContentPlaceHolder1_txb_Apellido2',
   nombre1:         'ContentPlaceHolder1_txb_Nombre1',
   nombre2:         'ContentPlaceHolder1_txb_Nombre2',
-
-  // Datos básicos
   fechaNac:        'ContentPlaceHolder1_txb_FechaNacimiento',
   genero:          'ContentPlaceHolder1_ddl_Genero',
   generoLGBTI:     'ContentPlaceHolder1_ddl_GeneroLGBTI',
@@ -157,12 +151,8 @@ const C = {
   factorRH:        'ContentPlaceHolder1_ddlFactorRH',
   etnia:           'ContentPlaceHolder1_ddl_Etnia',
   grupoPoblac:     'ContentPlaceHolder1_ddl_GrupoPoblacional',
-
-  // Teléfono y correo
   telefono1:       'ContentPlaceHolder1_txb_Telefono1',
   correo:          'ContentPlaceHolder1_txb_correo',
-
-  // Dirección
   direccion:       'ContentPlaceHolder1_txb_Direccion',
   localidad:       'ContentPlaceHolder1_ddl_Localidad',
   barrio:          'ContentPlaceHolder1_ddl_Barrio',
@@ -170,20 +160,16 @@ const C = {
   municipio:       'ContentPlaceHolder1_ddlMunicipios',
   departamento:    'ContentPlaceHolder1_ddlDepartamento',
   pais:            'ContentPlaceHolder1_ddlPais',
-
-  // EAPB
   regimen:         'ContentPlaceHolder1_ddl_Regimen',
   aseguradora:     'ContentPlaceHolder1_ddl_Aseguradora',
 };
 
-// ── Campos exclusivos de menores (pag=2) ──
 const CM = {
   tipoIDMadre:     'ContentPlaceHolder1_ddl_TipoIDMadre',
   identificaMadre: 'ContentPlaceHolder1_txb_IdentificacionMadre',
   apellido1Madre:  'ContentPlaceHolder1_txb_Apellido1Madre',
   apellido2Madre:  'ContentPlaceHolder1_txb_Apellido2Madre',
   nombre1Madre:    'ContentPlaceHolder1_txb_Nombre1Madre',
-  // nombre2Madre no aparece con valor en la consola — se intenta igual
   nombre2Madre:    'ContentPlaceHolder1_txb_Nombre2Madre',
   numeroHijo:      'ContentPlaceHolder1_txb_numeroHijo',
 };
@@ -200,37 +186,35 @@ async function scrapingPAI(modulo, opcion, consecutivo, codigo) {
       'ContentPlaceHolder1_txb_NumeroIdentificacionBusqueda', 15000
     );
 
-    // PASO 2 — Escribir código y disparar búsqueda
+    // PASO 2 — Escribir código y buscar
     escribir(campo, codigo);
     await sleep(400);
     dispararBusqueda(campo);
 
     // PASO 3 — Esperar tabla de resultados
-    await waitForEl('ContentPlaceHolder1_gdvResultadoBusqueda', 10000);
+    await waitForEl('ContentPlaceHolder1_gdvResultadoBusqueda', 12000);
     await sleep(500);
 
-    // PASO 4 — Seleccionar primer resultado (doPostBack exacto del Python)
+    // PASO 4 — Seleccionar primer resultado
     doPostBack(
       'ctl00$ContentPlaceHolder1$gdvResultadoBusqueda',
       'Select$0'
     );
 
-    // PASO 5 — Esperar que el detalle cargue
-    // Confirmamos con apellido1 que siempre tiene valor
+    // PASO 5 — Esperar detalle cargado (apellido1 con valor real)
     await waitForValue(C.apellido1, 12000);
     await sleep(300);
 
-    // PASO 6 — Campos base (presentes en TODAS las opciones)
+    // PASO 6 — Campos base
     fila.ID        = val(C.identificacion);
     fila.apellido1 = val(C.apellido1);
     fila.apellido2 = val(C.apellido2);
     fila.nombre1   = val(C.nombre1);
     fila.nombre2   = val(C.nombre2);
 
-    // PASO 7 — Campos específicos por opción
+    // PASO 7 — Campos por opción
     switch (opcion) {
-
-      case '1': // ── Datos básicos ──
+      case '1':
         fila.tipoID         = selVal(C.tipoID);
         fila.fecha_nac      = val(C.fechaNac);
         fila.sexo           = selVal(C.genero);
@@ -243,12 +227,12 @@ async function scrapingPAI(modulo, opcion, consecutivo, codigo) {
         fila.estado_persona = selVal(C.estadoPersona);
         break;
 
-      case '2': // ── Teléfono ──
+      case '2':
         fila.telefono1 = val(C.telefono1);
         fila.correo    = val(C.correo);
         break;
 
-      case '3': // ── Dirección ──
+      case '3':
         fila.direccion    = val(C.direccion);
         fila.localidad    = selVal(C.localidad);
         fila.barrio       = selVal(C.barrio);
@@ -258,19 +242,19 @@ async function scrapingPAI(modulo, opcion, consecutivo, codigo) {
         fila.pais         = selVal(C.pais);
         break;
 
-      case '4': // ── EAPB ──
+      case '4':
         fila.eapb    = selVal(C.aseguradora);
         fila.regimen = selVal(C.regimen);
         break;
 
-      case '5': // ── Datos madre (solo menores pag=2) ──
-        fila.tipoID_madre   = selVal(CM.tipoIDMadre);
-        fila.doc_madre      = val(CM.identificaMadre);
-        fila.nombre1_madre  = val(CM.nombre1Madre);
-        fila.nombre2_madre  = val(CM.nombre2Madre);
-        fila.apellido1_madre= val(CM.apellido1Madre);
-        fila.apellido2_madre= val(CM.apellido2Madre);
-        fila.numero_hijo    = val(CM.numeroHijo);
+      case '5':
+        fila.tipoID_madre    = selVal(CM.tipoIDMadre);
+        fila.doc_madre       = val(CM.identificaMadre);
+        fila.nombre1_madre   = val(CM.nombre1Madre);
+        fila.nombre2_madre   = val(CM.nombre2Madre);
+        fila.apellido1_madre = val(CM.apellido1Madre);
+        fila.apellido2_madre = val(CM.apellido2Madre);
+        fila.numero_hijo     = val(CM.numeroHijo);
         break;
     }
 
@@ -283,7 +267,7 @@ async function scrapingPAI(modulo, opcion, consecutivo, codigo) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  SCRAPING ADRES / COMPROBADOR DE DERECHOS
+//  SCRAPING ADRES
 // ─────────────────────────────────────────────────────────────────
 async function scrapingADRES(consecutivo, codigo) {
   let fila = { consecutivo, codigo };
@@ -292,12 +276,10 @@ async function scrapingADRES(consecutivo, codigo) {
     let sexoExtraido = null;
 
     for (let intento = 1; intento <= 3 && !sexoExtraido; intento++) {
-
       const campo = await waitForEl('MainContent_txtNoId', 12000);
       escribir(campo, codigo);
       await sleep(400);
 
-      // Disparar consulta ADRES
       const btnC = document.getElementById('MainContent_btnConsultar')
                 || document.getElementById('MainContent_btnBuscar')
                 || document.querySelector("input[type='submit'], button[type='submit']");
@@ -306,7 +288,6 @@ async function scrapingADRES(consecutivo, codigo) {
 
       await sleep(3000);
 
-      // Detectar tabla Contributivo o BUDA
       let tabla = null, origen = null;
       const tC = document.getElementById('MainContent_grdContributivo');
       const tB = document.getElementById('MainContent_grdBUDA');
@@ -315,13 +296,11 @@ async function scrapingADRES(consecutivo, codigo) {
 
       if (!tabla) { fila.estado = NE; break; }
 
-      // Extraer datos de la tabla
       const ths = [...tabla.querySelectorAll('th')].map(th => th.textContent.trim());
       const tds = [...tabla.querySelectorAll('tr:nth-child(2) td')].map(td => td.textContent.trim());
       ths.forEach((h, i) => { if (h) fila[h] = tds[i] ?? ''; });
       fila.tabla_origen = origen;
 
-      // Seleccionar detalle
       if (origen === 'Contributivo') {
         doPostBack('ctl00$MainContent$grdContributivo', 'Select$0');
       } else {
@@ -343,7 +322,6 @@ async function scrapingADRES(consecutivo, codigo) {
         fila.SEXO = 'NO DISPONIBLE'; break;
       }
 
-      // Volver a nueva consulta
       const btnNueva = document.getElementById('MainContent_cmdNuevaConsulta')
                     || document.getElementById('MainContent_cmdNueConsulta');
       if (btnNueva) { btnNueva.click(); await sleep(2000); }
